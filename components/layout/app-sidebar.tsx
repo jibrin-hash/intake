@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
@@ -12,6 +13,7 @@ import {
     LogOut,
     FileText
 } from "lucide-react";
+import { signOutAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
@@ -31,9 +33,16 @@ export function AppSidebar() {
 
     return (
         <div className="flex flex-col h-full border-r bg-muted/10 w-64">
-            <div className="p-6 border-b">
-                <h1 className="text-xl font-bold tracking-tight">RCE Intake</h1>
-                <p className="text-xs text-muted-foreground">Compliance System</p>
+            <div className="p-6 border-b flex justify-center">
+                <div className="relative w-full h-12">
+                    <Image
+                        src="/rce-logo.svg"
+                        alt="RCE Intake"
+                        fill
+                        className="object-contain invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+                        priority
+                    />
+                </div>
             </div>
 
             <nav className="flex-1 p-4 space-y-2">
@@ -69,7 +78,7 @@ export function AppSidebar() {
             <div className="p-4 border-t space-y-4">
                 <div className="flex items-center justify-between">
                     <ThemeSwitcher />
-                    <form action="/auth/signout" method="post">
+                    <form action={signOutAction}>
                         <Button variant="ghost" size="icon" title="Sign Out">
                             <LogOut size={18} />
                         </Button>
