@@ -27,7 +27,13 @@ export default function PhotoManagerPage() {
                 if (itemData) setItem(itemData);
                 setImages(imagesData || []);
                 setLoading(false);
+            }).catch(err => {
+                console.error("Failed to load photo manager:", err);
+                alert("Error loading page. Please refresh.");
+                setLoading(false);
             });
+        } else {
+            setLoading(false);
         }
     }, [itemId]);
 
@@ -42,10 +48,16 @@ export default function PhotoManagerPage() {
             const fileName = `${itemId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            // 1. Upload to Storage
-            const { error: uploadError } = await supabase.storage
+            // 1. Upload to Storage with timeout
+            const uploadPromise = supabase.storage
                 .from('intake-photos')
                 .upload(filePath, file);
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Upload timed out after 15s")), 15000)
+            );
+
+            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
 
             if (uploadError) throw uploadError;
 
@@ -57,11 +69,10 @@ export default function PhotoManagerPage() {
             const newImages = await getItemImages(itemId);
             setImages(newImages || []);
         } catch (err: any) {
-            console.error(err);
+            console.error("Upload process failed:", err);
             alert("Upload failed: " + err.message);
         } finally {
             setUploading(false);
-            // Reset input?
             e.target.value = "";
         }
     };

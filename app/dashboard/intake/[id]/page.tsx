@@ -43,11 +43,13 @@ export default function IntakeDetailsPage() {
     const [completing, setCompleting] = useState(false);
     const [holdDays, setHoldDays] = useState(14);
     const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
+    const [reporting, setReporting] = useState(false);
 
     useEffect(() => {
         async function load() {
             if (!id) return;
             const data = await getIntake(id);
+            console.log("INTAKE FETCHED:", data); // Debug
             setIntake(data as IntakeWithDetails);
             setLoading(false);
         }
@@ -92,7 +94,8 @@ export default function IntakeDetailsPage() {
             setLoading(false);
             setCompleting(false);
         } else {
-            router.push("/dashboard/intake/completed");
+            // Reload to show "Report to LeadsOnline" button and updated status
+            window.location.reload();
         }
     };
 
@@ -100,6 +103,21 @@ export default function IntakeDetailsPage() {
     if (!intake) return <div className="flex items-center justify-center min-h-[50vh] text-muted-foreground">Intake not found</div>;
 
     const isEditable = intake.status === "draft";
+
+    const handleReportToLeadsOnline = async () => {
+        if (!id) return;
+        setReporting(true);
+        const { submitToLeadsOnline } = await import("@/app/actions/intake");
+        const res = await submitToLeadsOnline(id);
+
+        if (res.error) {
+            alert("LeadsOnline Error: " + res.error);
+        } else {
+            alert("Successfully reported to LeadsOnline!");
+            window.location.reload();
+        }
+        setReporting(false);
+    };
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
@@ -112,8 +130,21 @@ export default function IntakeDetailsPage() {
                             {intake.status}
                         </span>
                     </div>
-                    <div className="text-muted-foreground">
-                        Customer: <Link href="#" className="underline">{intake.customer?.first_name} {intake.customer?.last_name}</Link>
+                    <div className="text-muted-foreground flex gap-4 items-center">
+                        <div>Dictionary Customer: <Link href="#" className="underline">{intake.customer?.first_name} {intake.customer?.last_name}</Link></div>
+                        {intake.status === "completed" && (
+                            intake.leadsonline_ticket_id === "SENT" || intake.leadsonline_ticket_id ? (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 gap-1 pl-1.5 py-1">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Reported to LeadsOnline
+                                </Badge>
+                            ) : (
+                                <Button variant="outline" size="sm" onClick={handleReportToLeadsOnline} disabled={reporting}>
+                                    {reporting ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <CheckCircle className="mr-2 h-3 w-3" />}
+                                    Report to LeadsOnline
+                                </Button>
+                            )
+                        )}
                     </div>
                 </div>
 
@@ -243,8 +274,8 @@ export default function IntakeDetailsPage() {
                                                 <Badge
                                                     variant={item.status === 'published' ? 'default' : 'outline'}
                                                     className={`mt-1 capitalize whitespace-nowrap ${item.status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200 shadow-none' :
-                                                            item.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                                                                item.status === 'cleared_for_resale' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''
+                                                        item.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                                            item.status === 'cleared_for_resale' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''
                                                         }`}
                                                 >
                                                     {item.status.replace(/_/g, " ")}

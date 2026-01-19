@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Pencil } from "lucide-react";
 import Link from "next/link";
 import { searchCustomers } from "@/app/actions/customers";
 import { Tables } from "@/lib/database.types";
@@ -90,12 +90,18 @@ export default function CustomersPage() {
                                             </span>
                                         </td>
                                         <td className="p-4 align-middle text-right">
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={`/dashboard/intake/new?customerId=${customer.id}`}>
-                                                    New Intake
-                                                </Link>
-                                            </Button>
-                                            {/* Edit button could go here */}
+                                            <div className="flex gap-2 justify-end">
+                                                <Button variant="ghost" size="icon" asChild>
+                                                    <Link href={`/dashboard/customers/${customer.id}/edit`}>
+                                                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                                                    </Link>
+                                                </Button>
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/dashboard/intake/new?customerId=${customer.id}`}>
+                                                        New Intake
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

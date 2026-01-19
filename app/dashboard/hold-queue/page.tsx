@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"; // Ensure we have badge
 import { Button } from "@/components/ui/button";
 import { Clock, ShieldCheck, AlertCircle } from "lucide-react";
 import { ReleaseButton } from "@/components/hold-queue/release-button";
+import Link from "next/link";
 
 export default async function HoldQueuePage() {
     const supabase = await createClient();
@@ -60,7 +61,9 @@ export default async function HoldQueuePage() {
                                     return (
                                         <tr key={item.id} className="border-b transition-colors hover:bg-muted/50">
                                             <td className="p-4 align-middle font-medium">
-                                                {item.brand} {item.model}
+                                                <Link href={`/dashboard/intake/${item.intake_id}`} className="hover:underline font-semibold text-primary">
+                                                    {item.brand} {item.model}
+                                                </Link>
                                                 <div className="text-xs text-muted-foreground">{item.category}</div>
                                             </td>
                                             <td className="p-4 align-middle">{item.serial_number}</td>
@@ -79,15 +82,22 @@ export default async function HoldQueuePage() {
                                                     {isExpired ? "Ready for Release" : "On Hold"}
                                                 </span>
                                             </td>
-                                            <td className="p-4 align-middle">
-                                                {isExpired ? (
-                                                    <ReleaseButton itemId={item.id} />
-                                                ) : (
-                                                    <Button size="sm" variant="ghost" disabled className="h-8 gap-1 opacity-50">
-                                                        <Clock className="w-3 h-3" />
-                                                        Wait
+                                            <td className="p-4 align-middle text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link href={`/dashboard/intake/${item.intake_id}`}>
+                                                            View Intake
+                                                        </Link>
                                                     </Button>
-                                                )}
+                                                    {isExpired ? (
+                                                        <ReleaseButton itemId={item.id} />
+                                                    ) : (
+                                                        <Button size="sm" variant="ghost" disabled className="h-8 gap-1 opacity-50">
+                                                            <Clock className="w-3 h-3" />
+                                                            Wait
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );

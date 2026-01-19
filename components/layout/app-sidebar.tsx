@@ -11,7 +11,8 @@ import {
     ShieldAlert,
     Settings,
     LogOut,
-    FileText
+    FileText,
+    History as HistoryIcon
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";

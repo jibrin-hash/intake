@@ -1,0 +1,35 @@
+Hi Benjamin,
+ 
+I’ve attached our API documentation along with transaction examples.  In addition, I created a test account for you on our sandbox.  Please use the following credentials for testing:
+ 
+To submit transactions via the API, use the following credentials:
+ 
+Re-Circuit Electronics Test Store – Store ID:  53348
+API Username:  rcetest01
+API Password:  test01rce
+ 
+To view test results on the Sandbox website, do the following:
+ 
+1. Log onto the sandbox website using the following credentials:
+ 
+URL:  https://sandboxw4.leadsonline.com
+Username:  RecircuitTest
+Password:  T35tingrce!
+ 
+1. Click on the “Transaction Monitor” option on the left
+2. On the new screen, click on the store name
+3. On the new screen, click on the date of the desired ticket
+4. On the new screen, click on the desired ticket number
+5. The ticket details will be displayed in a new window. Any images will be displayed at the bottom of the ticket window.
+ 
+The sandbox and production web service URLs (endpoints) can be found at the top of page 18 of our API document.
+ 
+Note that the sandbox isn’t quite as robust an environment as production, so navigating the screens is a little slower.
+ 
+Once you are satisfied with your test results, let us know, and we will provide you with their production API credentials.  If you have any other questions, issues, or need anything else, please let us know.
+ 
+Thanks,
+ 
+Russell
+
+Message Encryption by Microsoft Office 365Russell House <rhouse@leadsonline.com>
