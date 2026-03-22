@@ -23,7 +23,7 @@ export async function createIntake(customerId: string) {
         });
         if (profileError) {
             console.error("Failed to create missing profile:", profileError);
-            return { error: "User profile missing and could not be created." };
+            throw new Error("User profile missing and could not be created.");
         }
     }
 
@@ -48,6 +48,13 @@ export async function createIntake(customerId: string) {
 
 export async function getIntake(intakeId: string) {
     const supabase = await createClient();
+
+    // Basic UUID format check to avoid unnecessary Postgres errors for common invalid IDs (like "undefined")
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(intakeId)) {
+        console.warn(`Invalid UUID format provided to getIntake: ${intakeId}`);
+        return null;
+    }
 
     // Implement retry logic for potential replication lag in production
     for (let attempt = 1; attempt <= 3; attempt++) {

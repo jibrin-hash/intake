@@ -27,7 +27,11 @@ export default function StartIntakePage() {
             setInitLoading(true);
             createIntake(customerId)
                 .then((intake) => {
-                    router.push(`/dashboard/intake/${intake.id}`);
+                    if (intake && 'id' in intake) {
+                        router.push(`/dashboard/intake/${intake.id}`);
+                    } else {
+                        throw new Error("Failed to create intake session correctly.");
+                    }
                 })
                 .catch((err) => {
                     console.error("Intake Validated Error:", err);
