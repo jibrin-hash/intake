@@ -27,12 +27,14 @@ export default function StartIntakePage() {
             setInitLoading(true);
             createIntake(customerId)
                 .then((intake) => {
-                    console.log("[NewIntakePage] Intake creation result:", intake);
+                    console.log("[NewIntakePage] Intake creation success. Received intake:", intake);
                     if (intake && typeof intake === 'object' && 'id' in intake && intake.id) {
-                        router.push(`/dashboard/intake/${intake.id}`);
+                        const targetUrl = `/dashboard/intake/${intake.id}`;
+                        console.log("[NewIntakePage] Redirecting to:", targetUrl);
+                        router.push(targetUrl);
                     } else {
-                        console.error("[NewIntakePage] Invalid intake object returned:", intake);
-                        throw new Error("Failed to create intake session correctly: Missing ID.");
+                        console.error("[NewIntakePage] CRITICAL: Invalid intake object or missing ID:", intake);
+                        throw new Error("Failed to create intake session correctly: Missing ID in response.");
                     }
                 })
                 .catch((err) => {

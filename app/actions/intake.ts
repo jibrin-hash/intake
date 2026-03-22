@@ -38,29 +38,20 @@ export async function createIntake(customerId: string) {
         .select()
         .single();
 
-    if (insertError) {
-        console.error("Create intake error (INSERT):", insertError);
-        throw new Error(insertError.message);
-    }
-
-    if (!data) {
-        console.error("Create intake error (NO DATA): Insert succeeded but no record was returned. Check RLS or database consistency.");
-        throw new Error("Intake created but details could not be retrieved immediately.");
-    }
-
-    console.log("Intake created successfully:", data.id);
-    return data;
+    console.log("[createIntake] Returning intake data for ID:", data.id);
+    return { id: data.id };
 }
 
 export async function getIntake(intakeId: string) {
     const supabase = await createClient();
 
-    // Basic UUID format check to avoid unnecessary Postgres errors for common invalid IDs (like "undefined")
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!intakeId || !uuidRegex.test(intakeId.trim())) {
-        console.warn(`[getIntake] ABORTED: Invalid UUID format provided: "${intakeId}" (Type: ${typeof intakeId}, Length: ${intakeId?.length})`);
+    // Relaxed check to log exactly what's going on
+    if (!intakeId || typeof intakeId !== 'string') {
+        console.warn(`[getIntake] ABORTED: Missing or non-string ID provided: "${intakeId}" (Type: ${typeof intakeId})`);
         return null;
     }
+
+    console.log(`[getIntake] Proceeding with ID: "${intakeId}" (Length: ${intakeId.length})`);
 
     // Implement retry logic for potential replication lag in production
     for (let attempt = 1; attempt <= 3; attempt++) {
