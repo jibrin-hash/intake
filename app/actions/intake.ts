@@ -39,10 +39,16 @@ export async function createIntake(customerId: string) {
         .single();
 
     if (insertError) {
-        console.error("Create intake error:", insertError);
+        console.error("Create intake error (INSERT):", insertError);
         throw new Error(insertError.message);
     }
 
+    if (!data) {
+        console.error("Create intake error (NO DATA): Insert succeeded but no record was returned. Check RLS or database consistency.");
+        throw new Error("Intake created but details could not be retrieved immediately.");
+    }
+
+    console.log("Intake created successfully:", data.id);
     return data;
 }
 
@@ -51,8 +57,8 @@ export async function getIntake(intakeId: string) {
 
     // Basic UUID format check to avoid unnecessary Postgres errors for common invalid IDs (like "undefined")
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(intakeId)) {
-        console.warn(`Invalid UUID format provided to getIntake: ${intakeId}`);
+    if (!intakeId || !uuidRegex.test(intakeId.trim())) {
+        console.warn(`[getIntake] ABORTED: Invalid UUID format provided: "${intakeId}" (Type: ${typeof intakeId}, Length: ${intakeId?.length})`);
         return null;
     }
 

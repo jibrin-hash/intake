@@ -27,10 +27,12 @@ export default function StartIntakePage() {
             setInitLoading(true);
             createIntake(customerId)
                 .then((intake) => {
-                    if (intake && 'id' in intake) {
+                    console.log("[NewIntakePage] Intake creation result:", intake);
+                    if (intake && typeof intake === 'object' && 'id' in intake && intake.id) {
                         router.push(`/dashboard/intake/${intake.id}`);
                     } else {
-                        throw new Error("Failed to create intake session correctly.");
+                        console.error("[NewIntakePage] Invalid intake object returned:", intake);
+                        throw new Error("Failed to create intake session correctly: Missing ID.");
                     }
                 })
                 .catch((err) => {
