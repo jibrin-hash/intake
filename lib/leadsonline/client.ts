@@ -1,5 +1,5 @@
 import { Tables } from "@/lib/database.types";
-import { createClient } from "@/lib/supabase/client"; // Will use server-side client normally, need to inject it or pass it.
+// import { createClient } from "@/lib/supabase/client"; // Will use server-side client normally, need to inject it or pass it.
 
 export type LeadsOnlineConfig = {
   storeId: string;
