@@ -1,8 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { TablesInsert } from "@/lib/database.types";
-import { redirect } from "next/navigation";
 import { LeadsOnlineClient } from "@/lib/leadsonline/client";
 
 export async function createIntake(customerId: string) {
@@ -29,58 +27,56 @@ export async function createIntake(customerId: string) {
         }
     }
 
-    // Insert first (without select) to isolate RLS on insert vs select
-    const { error: insertError } = await supabase
+    // Insert and select in one go for atomicity and consistency
+    const { data, error: insertError } = await supabase
         .from("intakes")
         .insert({
             customer_id: customerId,
             processor_id: user.id,
             status: "draft"
-        });
-
-    if (insertError) {
-        console.error("Create intake INSERT error:", insertError);
-        throw new Error(insertError.message);
-    }
-
-    // Then select identifying the latest draft for this user/customer
-    const { data, error: selectError } = await supabase
-        .from("intakes")
+        })
         .select()
-        .eq("customer_id", customerId)
-        .eq("processor_id", user.id)
-        .eq("status", "draft")
-        .order("created_at", { ascending: false })
-        .limit(1)
         .single();
 
-    if (selectError) {
-        console.error("Create intake SELECT error:", selectError);
-        throw new Error("Intake created but failed to retrieve. Check RLS.");
+    if (insertError) {
+        console.error("Create intake error:", insertError);
+        throw new Error(insertError.message);
     }
-
-
 
     return data;
 }
 
 export async function getIntake(intakeId: string) {
     const supabase = await createClient();
-    const { data, error } = await supabase
-        .from("intakes")
-        .select(`
-      *,
-      customer:customers(*),
-      items:items(
-          *,
-          images:item_images(*)
-      )
-    `)
-        .eq("id", intakeId)
-        .single();
 
-    if (error) return null;
-    return data;
+    // Implement retry logic for potential replication lag in production
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        const { data, error } = await supabase
+            .from("intakes")
+            .select(`
+          *,
+          customer:customers(*),
+          items:items(
+              *,
+              images:item_images(*)
+          )
+        `)
+            .eq("id", intakeId)
+            .single();
+
+        if (data) return data;
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+            console.error(`Attempt ${attempt} to fetch intake ${intakeId} failed:`, error);
+        }
+
+        if (attempt < 3) {
+            console.log(`Intake ${intakeId} not found, retrying in 500ms... (Attempt ${attempt}/3)`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+
+    return null;
 }
 
 export async function addItem(intakeId: string, formData: FormData) {
@@ -319,8 +315,9 @@ export async function submitToLeadsOnline(intakeId: string) {
         }
 
         return { success: true, response: result.raw };
-    } catch (e: any) {
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Submission failed";
         console.error("LeadsOnline Submission Failed:", e);
-        return { error: e.message || "Submission failed" };
+        return { error: message };
     }
 }
