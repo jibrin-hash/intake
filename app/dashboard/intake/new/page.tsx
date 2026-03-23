@@ -31,7 +31,7 @@ export default function StartIntakePage() {
                     if (intake && typeof intake === 'object' && 'id' in intake && intake.id) {
                         const targetUrl = `/dashboard/intake/${intake.id}`;
                         console.log("[NewIntakePage] Redirecting to:", targetUrl);
-                        router.push(targetUrl);
+                        window.location.href = targetUrl;
                     } else {
                         console.error("[NewIntakePage] CRITICAL: Invalid intake object or missing ID:", intake);
                         throw new Error("Failed to create intake session correctly: Missing ID in response.");

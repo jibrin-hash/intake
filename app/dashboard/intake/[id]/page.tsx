@@ -49,7 +49,7 @@ export default function IntakeDetailsPage() {
     useEffect(() => {
         async function load() {
             if (!id || !UUID_REGEX.test(id)) {
-                console.log("[IntakeDetailsPage] Skipping load: ID is missing or malformed:", id);
+                console.warn("[IntakeDetailsPage] Malformed ID detected (likely system placeholder). Waiting for resolution...", id);
                 return;
             }
             const data = await getIntake(id);
