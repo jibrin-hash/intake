@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { getIntake, completeIntake, deleteItem } from "@/app/actions/intake";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, CheckCircle, AlertTriangle, Trash2, Pencil, Camera } from "lucide-react";
@@ -35,9 +35,10 @@ type IntakeWithDetails = Tables<"intakes"> & {
     })[];
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function IntakeDetailsPage() {
     const { id } = useParams<{ id: string }>();
-    const router = useRouter();
     const [intake, setIntake] = useState<IntakeWithDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [completing, setCompleting] = useState(false);
@@ -47,7 +48,10 @@ export default function IntakeDetailsPage() {
 
     useEffect(() => {
         async function load() {
-            if (!id) return;
+            if (!id || !UUID_REGEX.test(id)) {
+                console.log("[IntakeDetailsPage] Skipping load: ID is missing or malformed:", id);
+                return;
+            }
             const data = await getIntake(id);
             console.log("INTAKE FETCHED:", data); // Debug
             setIntake(data as IntakeWithDetails);
@@ -235,13 +239,12 @@ export default function IntakeDetailsPage() {
                 {intake.items.length === 0 ? (
                     <div className="p-12 border border-dashed rounded-lg text-center text-muted-foreground flex flex-col items-center">
                         <AlertTriangle className="h-8 w-8 mb-4 opacity-50" />
-                        No items added yet. Click "Add Item" to start.
+                        No items added yet. Click &quot;Add Item&quot; to start.
                     </div>
                 ) : (
                     <div className="grid gap-4">
                         {intake.items.map(item => {
                             const releaseDate = item.hold_expires_at ? new Date(item.hold_expires_at) : null;
-                            const isReleased = releaseDate && releaseDate < new Date();
                             const primaryImage = item.images?.find(img => img.is_primary) || item.images?.[0];
 
                             return (
