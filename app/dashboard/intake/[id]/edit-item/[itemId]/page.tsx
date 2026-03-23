@@ -10,7 +10,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Tables } from "@/lib/database.types";
 import { Combobox } from "@/components/ui/combobox";
-import { ITEM_CATEGORIES, getBrandsByCategory, getModelsByBrandCategory } from "@/lib/constants/items";
+import { ITEM_CATEGORIES, getBrandsByCategory } from "@/lib/constants/items";
 
 export default function EditItemPage() {
     const { id, itemId } = useParams<{ id: string; itemId: string }>();
@@ -27,7 +27,6 @@ export default function EditItemPage() {
 
     // Derived State
     const brandOptions = getBrandsByCategory(category);
-    const modelOptions = getModelsByBrandCategory(brand, category);
 
     useEffect(() => {
         if (itemId) {
@@ -123,15 +122,15 @@ export default function EditItemPage() {
 
                     <div className="space-y-2">
                         <Label htmlFor="model">Model *</Label>
-                        <Combobox
-                            options={modelOptions}
+                        <Input
+                            id="model"
+                            name="model"
                             value={model}
-                            onChange={setModel}
-                            onCreate={setModel}
-                            placeholder={brand ? "Select or enter model..." : "Select brand first"}
+                            onChange={(e) => setModel(e.target.value)}
+                            placeholder={brand ? "Enter model name..." : "Select brand first"}
                             disabled={!brand}
+                            required
                         />
-                        <input type="hidden" name="model" value={model} />
                     </div>
 
                     <div className="space-y-2">

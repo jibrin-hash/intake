@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { addItem } from "@/app/actions/intake";
-import { getExistingCategories, getExistingBrands, getExistingModels } from "@/app/actions/inventory";
+import { getExistingCategories, getExistingBrands } from "@/app/actions/inventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Combobox, ComboboxOption } from "@/components/ui/combobox";
-import { ITEM_CATEGORIES, getBrandsByCategory, getModelsByBrandCategory } from "@/lib/constants/items";
+import { ITEM_CATEGORIES, getBrandsByCategory } from "@/lib/constants/items";
 import { toast } from "sonner";
 
 export default function AddItemPage() {
@@ -27,7 +27,6 @@ export default function AddItemPage() {
     // Dynamic Options State
     const [dynamicCategories, setDynamicCategories] = useState<ComboboxOption[]>([]);
     const [dynamicBrands, setDynamicBrands] = useState<ComboboxOption[]>([]);
-    const [dynamicModels, setDynamicModels] = useState<ComboboxOption[]>([]);
 
     // 1. Fetch Categories on Mount
     useEffect(() => {
@@ -47,17 +46,6 @@ export default function AddItemPage() {
         }
     }, [category]);
 
-    // 3. Fetch Models when Brand/Category changes
-    useEffect(() => {
-        if (brand) {
-            getExistingModels(brand, category).then(models => {
-                setDynamicModels(models);
-            });
-        } else {
-            setDynamicModels([]);
-        }
-    }, [brand, category]);
-
     // Merge Helper
     const mergeOptions = (staticOpts: ComboboxOption[], dynamicOpts: ComboboxOption[]) => {
         const map = new Map();
@@ -68,7 +56,6 @@ export default function AddItemPage() {
 
     const categoryOptions = mergeOptions(ITEM_CATEGORIES, dynamicCategories);
     const brandOptions = mergeOptions(getBrandsByCategory(category), dynamicBrands);
-    const modelOptions = mergeOptions(getModelsByBrandCategory(brand, category), dynamicModels);
 
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -77,7 +64,7 @@ export default function AddItemPage() {
         setLoading(true);
         setError(null);
 
-        // Ensure combobox values are in formData
+        // Ensure state values are in formData
         formData.set("category", category);
         formData.set("brand", brand);
         formData.set("model", model);
@@ -93,7 +80,7 @@ export default function AddItemPage() {
         if (requiredFields.length > 0) {
             const errorMsg = `Please fill out: ${requiredFields.join(", ")}`;
             toast.error(errorMsg);
-            setError(errorMsg); // Optional: keep visual inline error too if desired
+            setError(errorMsg);
             setLoading(false);
             return;
         }
@@ -105,18 +92,11 @@ export default function AddItemPage() {
             setLoading(false);
         } else {
             // Success! 
-            // 1. Reset React State
             setCategory("");
             setBrand("");
             setModel("");
-
-            // 2. Reset Native Form Inputs (Price, Serial, etc.)
             formRef.current?.reset();
-
-            // 3. Stop loading spinner so it doesn't spin forever during redirect
             setLoading(false);
-
-            // 4. Redirect to photo upload page
             router.push(`/dashboard/intake/${id}/items/${result.item.id}/photos`);
         }
     }
@@ -152,7 +132,6 @@ export default function AddItemPage() {
                                 }}
                                 placeholder="Select category..."
                             />
-                            {/* Fallback hidden input isn't strictly needed if we intercept formData, but good for safety */}
                             <input type="hidden" name="category" value={category} />
                         </div>
                         <div className="space-y-2">
@@ -177,15 +156,15 @@ export default function AddItemPage() {
 
                     <div className="space-y-2">
                         <Label htmlFor="model">Model *</Label>
-                        <Combobox
-                            options={modelOptions}
+                        <Input
+                            id="model"
+                            name="model"
                             value={model}
-                            onChange={setModel}
-                            onCreate={setModel}
-                            placeholder={brand ? "Select or enter model..." : "Select brand first"}
+                            onChange={(e) => setModel(e.target.value)}
+                            placeholder={brand ? "Enter model name..." : "Select brand first"}
                             disabled={!brand}
+                            required
                         />
-                        <input type="hidden" name="model" value={model} />
                     </div>
 
                     <div className="space-y-2">
@@ -225,8 +204,6 @@ export default function AddItemPage() {
                             placeholder="Detailed physical description, scratches, dents..."
                         />
                     </div>
-
-                    {/* Photo upload will happen next */}
 
                     {error && (
                         <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
