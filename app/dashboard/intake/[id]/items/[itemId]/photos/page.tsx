@@ -50,27 +50,47 @@ export default function PhotoManagerPage() {
         setUploading(true);
 
         try {
+            console.log("[handleUpload] Starting upload for itemId:", itemId);
+            console.log("[handleUpload] File info:", { name: file.name, size: file.size, type: file.type });
+
             const supabase = createClient();
             const fileExt = file.name.split('.').pop();
             const fileName = `${itemId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${fileName}`;
+            
+            console.log("[handleUpload] Generated filePath:", filePath);
 
-            // 1. Upload to Storage
-            const { error: uploadError } = await supabase.storage
+            // 1. Upload to Storage with AbortSignal for debugging
+            const controller = new AbortController();
+            controller.signal.onabort = () => console.warn("[handleUpload] AbortSignal triggered!");
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('intake-photos')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    signal: controller.signal
+                });
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                console.error("[handleUpload] Supabase upload error:", uploadError);
+                throw uploadError;
+            }
+            
+            console.log("[handleUpload] Upload successful:", uploadData);
 
             // 2. Save record to DB
+            console.log("[handleUpload] Saving record to DB...");
             const res = await saveItemImage(itemId, filePath);
-            if (res.error) throw new Error(res.error);
+            if (res.error) {
+                console.error("[handleUpload] DB save error:", res.error);
+                throw new Error(res.error);
+            }
+            console.log("[handleUpload] DB record saved successfully.");
 
             // Refresh images
             const newImages = await getItemImages(itemId);
             setImages(newImages || []);
         } catch (err: unknown) {
-            console.error("Upload process failed:", err);
+            console.error("[handleUpload] Upload process failed. Full error:", err);
             const message = err instanceof Error ? err.message : String(err);
             alert("Upload failed: " + message);
         } finally {
