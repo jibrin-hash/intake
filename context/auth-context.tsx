@@ -32,24 +32,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const supabase = createClient();
 
         const fetchProfile = async (userId: string) => {
-            const { data } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", userId)
-                .single();
-            if (data) setProfile(data);
+            try {
+                const { data, error } = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", userId)
+                    .single();
+                if (error) {
+                    console.error("[AuthProvider] Profile fetch error:", error);
+                }
+                if (data) setProfile(data);
+            } catch (err) {
+                console.error("[AuthProvider] Unexpected profile fetch error:", err);
+            }
         };
 
         const initAuth = async () => {
-            console.log("[AuthProvider] Initializing auth...");
-            const { data: { session } } = await supabase.auth.getSession();
-            console.log("[AuthProvider] Session found on mount:", !!session, session?.user?.id);
-            
-            setUser(session?.user || null);
-            if (session?.user) {
-                await fetchProfile(session.user.id);
+            try {
+                console.log("[AuthProvider] Initializing auth...");
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    console.error("[AuthProvider] Session fetch error:", sessionError);
+                }
+
+                console.log("[AuthProvider] Session found on mount:", !!session, session?.user?.id);
+                
+                setUser(session?.user || null);
+                if (session?.user) {
+                    await fetchProfile(session.user.id);
+                }
+            } catch (err) {
+                console.error("[AuthProvider] Auth initialization error:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
 
             const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
                 console.log("[AuthProvider] Auth state change event:", event, !!session);
