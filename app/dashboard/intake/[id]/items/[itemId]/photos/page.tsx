@@ -144,9 +144,20 @@ export default function PhotoManagerPage() {
     const handleDelete = async (imageId: string) => {
         if (!confirm("Delete this photo?")) return;
 
-        await deleteItemImage(imageId);
-        // Optimistic UI update or refresh
-        setImages(images.filter(img => img.id !== imageId));
+        try {
+            const res = await deleteItemImage(imageId);
+            if (res.error) {
+                toast.error("Failed to delete photo: " + res.error);
+                return;
+            }
+            
+            // Optimistic UI update or refresh
+            setImages(images.filter(img => img.id !== imageId));
+            toast.success("Photo deleted.");
+        } catch (err: unknown) {
+            console.error("Delete failed:", err);
+            toast.error("An unexpected error occurred during deletion.");
+        }
     };
 
     if (loading || authLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;

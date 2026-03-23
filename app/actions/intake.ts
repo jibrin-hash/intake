@@ -264,6 +264,30 @@ export async function saveItemImage(itemId: string, path: string) {
 
 export async function deleteItemImage(imageId: string) {
     const supabase = await createClient();
+
+    // 1. Get storage path first
+    const { data: img, error: fetchError } = await supabase
+        .from("item_images")
+        .select("storage_path")
+        .eq("id", imageId)
+        .single();
+    
+    if (fetchError || !img) {
+        console.error("[deleteItemImage] Could not find image record:", fetchError);
+        return { error: "Image record not found." };
+    }
+
+    // 2. Delete from Storage
+    const { error: storageError } = await supabase.storage
+        .from("intake-photos")
+        .remove([img.storage_path]);
+    
+    if (storageError) {
+        console.error("[deleteItemImage] Storage deletion error:", storageError);
+        // We continue anyway to cleanup the DB if storage fails (e.g. file already gone)
+    }
+
+    // 3. Delete from DB
     const { error } = await supabase
         .from("item_images")
         .delete()
