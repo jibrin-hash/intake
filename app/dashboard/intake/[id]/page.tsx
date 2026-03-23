@@ -25,6 +25,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 import { Calendar } from "@/components/ui/calendar";
 
@@ -109,18 +110,28 @@ export default function IntakeDetailsPage() {
     const isEditable = intake.status === "draft";
 
     const handleReportToLeadsOnline = async () => {
-        if (!id) return;
+        if (!id || !intake) return;
         setReporting(true);
-        const { submitToLeadsOnline } = await import("@/app/actions/intake");
-        const res = await submitToLeadsOnline(id);
+        try {
+            const { submitToLeadsOnline } = await import("@/app/actions/intake");
+            const res = await submitToLeadsOnline(id);
 
-        if (res.error) {
-            alert("LeadsOnline Error: " + res.error);
-        } else {
-            alert("Successfully reported to LeadsOnline!");
-            window.location.reload();
+            if (res.error) {
+                toast.error("LeadsOnline Error: " + res.error);
+            } else {
+                toast.success("Successfully reported to LeadsOnline!");
+                // Update local state instead of full reload
+                setIntake({
+                    ...intake,
+                    leadsonline_ticket_id: "SENT"
+                });
+            }
+        } catch (err) {
+            console.error("LeadsOnline Report Failed:", err);
+            toast.error("An unexpected error occurred while reporting to LeadsOnline.");
+        } finally {
+            setReporting(false);
         }
-        setReporting(false);
     };
 
     return (
