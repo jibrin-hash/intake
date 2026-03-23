@@ -10,12 +10,14 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       auth: {
-        // Disable the navigator.locks API locking to prevent "signal is aborted without reason".
-        // This is safe because we are using cookies for session sync via @supabase/ssr.
-        // We use a simple lock bypass that just executes the callback.
-        lock: async (name: string, callback: () => Promise<unknown>) => {
-          console.log("[SupabaseClient] Executing auth lock callback for:", name);
-          return await callback();
+        // Use a defensive lock bypass to prevent "signal is aborted without reason".
+        // This dynamically finds the callback argument (usually the 2nd) and executes it.
+        lock: async (...args: unknown[]) => {
+          const callback = args.find((a) => typeof a === "function") as
+            | (() => Promise<unknown>)
+            | undefined;
+          if (callback) return await callback();
+          return Promise.resolve();
         }
       } as unknown as object
     }
