@@ -55,16 +55,10 @@ export default function PhotoManagerPage() {
             const fileName = `${itemId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            // 1. Upload to Storage with timeout
-            const uploadPromise = supabase.storage
+            // 1. Upload to Storage
+            const { error: uploadError } = await supabase.storage
                 .from('intake-photos')
                 .upload(filePath, file);
-
-            const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("Upload timed out after 15s")), 15000)
-            );
-
-            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]);
 
             if (uploadError) throw uploadError;
 
