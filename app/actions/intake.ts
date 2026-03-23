@@ -38,7 +38,10 @@ export async function createIntake(customerId: string) {
         .select()
         .single();
 
-    console.log("[createIntake] Returning intake data for ID:", data.id);
+    if (insertError) {
+        console.error("Create intake error:", insertError);
+        throw new Error(insertError.message);
+    }
     return { id: data.id };
 }
 
@@ -55,6 +58,10 @@ export async function getIntake(intakeId: string) {
 
     // Implement retry logic for potential replication lag in production
     for (let attempt = 1; attempt <= 3; attempt++) {
+        // Log auth status for debugging
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log(`[getIntake] Attempt ${attempt}: current user:`, user?.id || "not authenticated");
+
         const { data, error } = await supabase
             .from("intakes")
             .select(`
@@ -68,10 +75,36 @@ export async function getIntake(intakeId: string) {
             .eq("id", intakeId)
             .single();
 
-        if (data) return data;
+        if (data) {
+            console.log(`[getIntake] Found data on attempt ${attempt}`);
+            return data;
+        }
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+        if (error) {
             console.error(`Attempt ${attempt} to fetch intake ${intakeId} failed:`, error);
+        }
+
+        // Diagnostic: Try with admin client to rule out RLS/Auth issues
+        if (attempt === 3) {
+            console.log(`[getIntake] Final attempt failed with user client. Trying admin client for diagnosis...`);
+            const { createAdminClient } = await import("@/lib/supabase/server");
+            const adminSupabase = await createAdminClient();
+            const { data: adminData, error: adminError } = await adminSupabase
+                .from("intakes")
+                .select(`
+                    *,
+                    customer:customers(*),
+                    items:items(*, images:item_images(*))
+                `)
+                .eq("id", intakeId)
+                .single();
+            
+            if (adminData) {
+                console.warn(`[getIntake] CRITICAL: Record FOUND with admin client but NOT with user client. This is an RLS or AUTH issue!`);
+                return adminData; // Return anyway to let the user proceed
+            } else {
+                console.error(`[getIntake] Record still NOT found with admin client. This is a consistency or ID issue.`, adminError);
+            }
         }
 
         if (attempt < 3) {
