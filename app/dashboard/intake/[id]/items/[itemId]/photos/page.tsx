@@ -18,6 +18,7 @@ export default function PhotoManagerPage() {
     const [images, setImages] = useState<Tables<"item_images">[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const supabase = createClient();
 
     useEffect(() => {
         async function load() {
@@ -53,7 +54,6 @@ export default function PhotoManagerPage() {
             console.log("[handleUpload] Starting upload for itemId:", itemId);
             console.log("[handleUpload] File info:", { name: file.name, size: file.size, type: file.type });
 
-            const supabase = createClient();
             const fileExt = file.name.split('.').pop();
             const fileName = `${itemId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${fileName}`;
