@@ -20,7 +20,7 @@ export default function PhotoManagerPage() {
     const [images, setImages] = useState<Tables<"item_images">[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const supabase = createClient();
 
     useEffect(() => {
@@ -54,8 +54,14 @@ export default function PhotoManagerPage() {
         
         // --- PRE-UPLOAD DIAGNOSTICS ---
         console.log("[handleUpload] --- STARTING UPLOAD ---");
+        
+        // Force a session refresh/check directly from Supabase to bypass potentially stale context
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        const activeUser = freshUser || user;
+
         console.log("[handleUpload] ItemId:", itemId);
-        console.log("[handleUpload] Auth User ID:", user?.id);
+        console.log("[handleUpload] Auth Context User ID:", user?.id);
+        console.log("[handleUpload] Fresh Supabase User ID:", freshUser?.id);
         console.log("[handleUpload] Profile Role:", profile?.role);
         console.log("[handleUpload] Supabase URL exists:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
         console.log("[handleUpload] File info:", { 
@@ -64,7 +70,7 @@ export default function PhotoManagerPage() {
             type: file.type 
         });
 
-        if (!user) {
+        if (!activeUser) {
             console.error("[handleUpload] ERROR: No authenticated user found.");
             toast.error("Upload failed: You must be logged in.");
             return;
@@ -143,7 +149,7 @@ export default function PhotoManagerPage() {
         setImages(images.filter(img => img.id !== imageId));
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+    if (loading || authLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
     if (!item) return <div className="p-12">Item not found</div>;
 
     return (
