@@ -401,9 +401,93 @@ export async function submitToLeadsOnline(intakeId: string) {
         }
 
         return { success: true, response: result.raw };
-    } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Submission failed";
-        console.error("LeadsOnline Submission Failed:", e);
-        return { error: message };
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("LeadsOnline Submission Error:", err);
+        return { error: message || "Failed to submit to LeadsOnline" };
     }
+}
+
+export async function syncLeadsOnlineReports() {
+    const supabase = await createAdminClient();
+    
+    // 1. Config
+    const storeId = process.env.LEADSONLINE_STORE_ID;
+    const username = process.env.LEADSONLINE_USERNAME;
+    const password = process.env.LEADSONLINE_PASSWORD;
+    const url = process.env.LEADSONLINE_URL;
+
+    if (!storeId || !username || !password || !url) {
+        return { error: "LeadsOnline configuration missing" };
+    }
+
+    const client = new LeadsOnlineClient({ storeId, username, password, url });
+    const results: { date: string; status: string; error?: string }[] = [];
+
+    // 2. Identify missing days (last 14 days, excluding today)
+    const today = new Date();
+    for (let i = 1; i <= 14; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+
+        // Check if report already exists
+        const { data: existingReport } = await supabase
+            .from("leadsonline_no_transaction_reports")
+            .select("id")
+            .eq("report_date", dateString)
+            .single();
+
+        if (existingReport) continue;
+
+        // Check if any completed intake exists for this day
+        // We use date_trunc or simple range
+        const startOfDay = new Date(dateString);
+        startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(dateString);
+        endOfDay.setHours(23,59,59,999);
+
+        const { count, error: countError } = await supabase
+            .from("intakes")
+            .select("*", { count: 'exact', head: true })
+            .eq("status", "completed")
+            .gte("created_at", startOfDay.toISOString())
+            .lte("created_at", endOfDay.toISOString());
+
+        if (countError) {
+            console.error(`Error checking intakes for ${dateString}:`, countError);
+            continue;
+        }
+
+        if (count === 0) {
+            // No transactions! Report it.
+            try {
+                const res = await client.setNoTransactionDay(dateString);
+                // Save report record
+                await supabase.from("leadsonline_no_transaction_reports").insert({
+                    report_date: dateString,
+                    status: 'success',
+                    raw_response: res.raw
+                });
+                results.push({ date: dateString, status: 'reported' });
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(`Failed to report ${dateString}:`, err);
+                results.push({ date: dateString, status: 'error', error: message });
+            }
+        }
+    }
+
+    return { success: true, results };
+}
+
+export async function getLeadsOnlineComplianceStatus() {
+    const supabase = await createClient();
+    const { data: reports } = await supabase
+        .from("leadsonline_no_transaction_reports")
+        .select("*")
+        .order("report_date", { ascending: false })
+        .limit(14);
+    
+    return reports || [];
 }

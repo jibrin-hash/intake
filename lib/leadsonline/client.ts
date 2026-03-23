@@ -172,7 +172,46 @@ export class LeadsOnlineClient {
     if (responseText.includes('<errorCode>0</errorCode>')) {
       return { success: true, raw: responseText };
     } else {
-      // Extract error code if possible, or just dump response
+      throw new Error(`LeadsOnline Business Error: ${responseText}`);
+    }
+  }
+
+  async setNoTransactionDay(date: string | Date) {
+    const formattedDate = this.formatDate(date); // YYYY-MM-DD
+    // Note: Documentation says 01/17/2019 (MM/DD/YYYY)
+    const parts = formattedDate.split('-');
+    const mmddyyyy = `${parts[1]}/${parts[2]}/${parts[0]}`;
+
+    const bodyContent = `
+    <SetNoTransactionDayForStore xmlns="http://www.leadsonline.com/">
+      <login>
+        <storeId>${this.config.storeId}</storeId>
+        <userName>${this.config.username}</userName>
+        <password>${this.config.password}</password>
+      </login>
+      <TransactionDate>${mmddyyyy}</TransactionDate>
+    </SetNoTransactionDayForStore>`;
+
+    const xml = this.getSoapEnvelope(bodyContent);
+
+    const response = await fetch(this.config.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': 'http://www.leadsonline.com/SetNoTransactionDayForStore'
+      },
+      body: xml
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`LeadsOnline API Error: ${response.status} ${response.statusText}\n${responseText}`);
+    }
+
+    if (responseText.includes('<errorCode>0</errorCode>')) {
+      return { success: true, raw: responseText };
+    } else {
       throw new Error(`LeadsOnline Business Error: ${responseText}`);
     }
   }

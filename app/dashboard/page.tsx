@@ -1,8 +1,9 @@
 import { getDashboardStats, getRecentActivity } from "@/app/actions/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, DollarSign, Package, Users } from "lucide-react";
+import { DollarSign, Package, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LeadsOnlineCompliance } from "@/components/leadsonline-compliance";
 
 export default async function DashboardPage() {
     const stats = await getDashboardStats();
@@ -110,8 +111,11 @@ export default async function DashboardPage() {
                     </CardContent>
                 </Card>
 
+                {/* LeadsOnline Compliance */}
+                <LeadsOnlineCompliance />
+
                 {/* Secondary Column / Quick Actions */}
-                <Card className="col-span-3">
+                <Card className="col-span-3 lg:col-span-7 xl:col-span-3">
                     <CardHeader>
                         <CardTitle>Quick Actions</CardTitle>
                     </CardHeader>
