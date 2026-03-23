@@ -60,14 +60,12 @@ export default function PhotoManagerPage() {
             
             console.log("[handleUpload] Generated filePath:", filePath);
 
-            // 1. Upload to Storage with AbortSignal for debugging
-            const controller = new AbortController();
-            controller.signal.onabort = () => console.warn("[handleUpload] AbortSignal triggered!");
-
+            // 1. Upload to Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('intake-photos')
                 .upload(filePath, file, {
-                    signal: controller.signal
+                    contentType: file.type,
+                    upsert: false
                 });
 
             if (uploadError) {
