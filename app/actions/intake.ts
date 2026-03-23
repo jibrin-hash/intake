@@ -3,8 +3,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { LeadsOnlineClient } from "@/lib/leadsonline/client";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function createIntake(customerId: string) {
     const supabase = await createClient();
+
+    // UUID Validation Guard (Pragmatic Fix)
+    if (!UUID_REGEX.test(customerId)) {
+        console.error(`[createIntake] REJECTED: Invalid customer ID format: "${customerId}"`);
+        throw new Error("Invalid customer ID format provided.");
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -48,9 +56,9 @@ export async function createIntake(customerId: string) {
 export async function getIntake(intakeId: string) {
     const supabase = await createClient();
 
-    // Relaxed check to log exactly what's going on
-    if (!intakeId || typeof intakeId !== 'string') {
-        console.warn(`[getIntake] ABORTED: Missing or non-string ID provided: "${intakeId}" (Type: ${typeof intakeId})`);
+    // UUID Validation Guard: Prevent database errors (22P02) for malformed IDs (e.g. placeholders like drp:id)
+    if (!UUID_REGEX.test(intakeId)) {
+        console.warn(`[getIntake] ABORTED: Invalid UUID format provided: "${intakeId}"`);
         return null;
     }
 
