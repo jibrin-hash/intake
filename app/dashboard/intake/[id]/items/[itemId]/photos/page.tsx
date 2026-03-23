@@ -9,6 +9,8 @@ import { Loader2, ArrowLeft, Trash2, Camera } from "lucide-react";
 import Link from "next/link";
 import { Tables } from "@/lib/database.types";
 import Image from "next/image";
+import { useAuth } from "@/context/auth-context";
+import { toast } from "sonner";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -18,6 +20,7 @@ export default function PhotoManagerPage() {
     const [images, setImages] = useState<Tables<"item_images">[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const { user, profile } = useAuth();
     const supabase = createClient();
 
     useEffect(() => {
@@ -48,19 +51,38 @@ export default function PhotoManagerPage() {
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || !itemId) return;
         const file = e.target.files[0];
+        
+        // --- PRE-UPLOAD DIAGNOSTICS ---
+        console.log("[handleUpload] --- STARTING UPLOAD ---");
+        console.log("[handleUpload] ItemId:", itemId);
+        console.log("[handleUpload] Auth User ID:", user?.id);
+        console.log("[handleUpload] Profile Role:", profile?.role);
+        console.log("[handleUpload] Supabase URL exists:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+        console.log("[handleUpload] File info:", { 
+            name: file.name, 
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`, 
+            type: file.type 
+        });
+
+        if (!user) {
+            console.error("[handleUpload] ERROR: No authenticated user found.");
+            toast.error("Upload failed: You must be logged in.");
+            return;
+        }
+
         setUploading(true);
 
         try {
-            console.log("[handleUpload] Starting upload for itemId:", itemId);
-            console.log("[handleUpload] File info:", { name: file.name, size: file.size, type: file.type });
-
             const fileExt = file.name.split('.').pop();
             const fileName = `${itemId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `${fileName}`;
             
-            console.log("[handleUpload] Generated filePath:", filePath);
+            console.log("[handleUpload] Target Path:", filePath);
 
             // 1. Upload to Storage
+            // NOTE: We don't use 'e.target.disabled = true' immediately to avoid 
+            // potential browser context loss that might trigger an AbortSignal.
+            
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('intake-photos')
                 .upload(filePath, file, {
@@ -69,31 +91,47 @@ export default function PhotoManagerPage() {
                 });
 
             if (uploadError) {
-                console.error("[handleUpload] Supabase upload error:", uploadError);
+                console.group("[handleUpload] Supabase Upload Error Details");
+                console.error("Error Object:", uploadError);
+                console.error("Message:", uploadError.message);
+                console.error("Name:", (uploadError as { name?: string }).name);
+                console.groupEnd();
                 throw uploadError;
             }
             
-            console.log("[handleUpload] Upload successful:", uploadData);
+            console.log("[handleUpload] Storage upload successful:", uploadData);
 
             // 2. Save record to DB
-            console.log("[handleUpload] Saving record to DB...");
             const res = await saveItemImage(itemId, filePath);
             if (res.error) {
-                console.error("[handleUpload] DB save error:", res.error);
+                console.error("[handleUpload] DB Record save error:", res.error);
                 throw new Error(res.error);
             }
-            console.log("[handleUpload] DB record saved successfully.");
+            console.log("[handleUpload] Database record saved.");
 
-            // Refresh images
+            // Refresh UI
             const newImages = await getItemImages(itemId);
             setImages(newImages || []);
+            toast.success("Photo uploaded successfully.");
         } catch (err: unknown) {
-            console.error("[handleUpload] Upload process failed. Full error:", err);
-            const message = err instanceof Error ? err.message : String(err);
-            alert("Upload failed: " + message);
+            console.group("[handleUpload] FAILED");
+            console.error("Caught error:", err);
+            
+            const error = err as Error;
+            // Special handling for Abort errors
+            const isAbort = error?.message?.includes("aborted") || error?.name === "AbortError";
+            if (isAbort) {
+                console.warn("[handleUpload] PROMPT: The request was aborted by the network or browser.");
+            }
+            
+            console.groupEnd();
+            
+            const message = error?.message || String(err);
+            alert(`Upload failed: ${message}\n\nPlease try again or check your internet connection.`);
         } finally {
             setUploading(false);
-            e.target.value = "";
+            // Reset input after completion
+            if (e.target) e.target.value = "";
         }
     };
 
@@ -146,15 +184,16 @@ export default function PhotoManagerPage() {
                             Take a photo with your device or upload from gallery.
                         </p>
 
-                        <Button disabled={uploading} className="w-full max-w-[200px] relative">
+                        <Button disabled={uploading} className="w-full max-w-[200px] relative pointer-events-auto">
                             {uploading ? "Uploading..." : "Select File"}
                             <input
                                 type="file"
                                 accept="image/*"
                                 capture="environment"
-                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                                 onChange={handleUpload}
-                                disabled={uploading}
+                                // We don't disable the input itself, only the wrapper Button 
+                                // to avoid potential browser termination of the onChange stream.
                             />
                         </Button>
                     </div>
