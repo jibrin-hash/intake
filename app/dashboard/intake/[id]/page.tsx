@@ -149,12 +149,12 @@ export default function IntakeDetailsPage() {
                         <div>Dictionary Customer: <Link href="#" className="underline">{intake.customer?.first_name} {intake.customer?.last_name}</Link></div>
                         {intake.status === "completed" && (
                             intake.leadsonline_ticket_id === "SENT" || intake.leadsonline_ticket_id ? (
-                                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200 gap-1 pl-1.5 py-1">
+                                <Badge variant="secondary" className="bg-green-400 hover:bg-green-400 text-green-800 border-green-800 gap-1 pl-1.5 py-1">
                                     <CheckCircle className="h-3 w-3" />
                                     Reported to LeadsOnline
                                 </Badge>
                             ) : (
-                                <Button variant="outline" size="sm" onClick={handleReportToLeadsOnline} disabled={reporting}>
+                                <Button variant="default" className="bg-yellow-400 hover:bg-yellow-400 text-yellow-800 border-yellow-800" size="sm" onClick={handleReportToLeadsOnline} disabled={reporting}>
                                     {reporting ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <CheckCircle className="mr-2 h-3 w-3" />}
                                     Report to LeadsOnline
                                 </Button>
