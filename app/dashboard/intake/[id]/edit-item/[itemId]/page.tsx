@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { getItem, updateItem } from "@/app/actions/intake";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import { ITEM_CATEGORIES, getBrandsByCategory } from "@/lib/constants/items";
 
 export default function EditItemPage() {
     const { id, itemId } = useParams<{ id: string; itemId: string }>();
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [initLoading, setInitLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -60,7 +59,7 @@ export default function EditItemPage() {
             setError(result.error);
             setLoading(false);
         } else {
-            router.push(`/dashboard/intake/${id}`);
+            window.location.href = `/dashboard/intake/${id}`;
         }
     }
 

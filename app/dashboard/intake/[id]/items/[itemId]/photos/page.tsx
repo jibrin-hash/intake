@@ -1,41 +1,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { getItem, getItemImages, saveItemImage, deleteItemImage } from "@/app/actions/intake";
 import { createClient } from "@/lib/supabase/client"; // Need client-side for storage
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Upload, Trash2, Camera } from "lucide-react";
+import { Loader2, ArrowLeft, Trash2, Camera } from "lucide-react";
 import Link from "next/link";
 import { Tables } from "@/lib/database.types";
 import Image from "next/image";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function PhotoManagerPage() {
     const { id, itemId } = useParams<{ id: string; itemId: string }>();
-    const router = useRouter();
     const [item, setItem] = useState<Tables<"items"> | null>(null);
     const [images, setImages] = useState<Tables<"item_images">[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
-        if (itemId) {
-            Promise.all([
-                getItem(itemId),
-                getItemImages(itemId)
-            ]).then(([itemData, imagesData]) => {
+        async function load() {
+            if (!itemId || !UUID_REGEX.test(itemId) || !id || !UUID_REGEX.test(id)) {
+                console.warn("[PhotoManagerPage] Malformed IDs detected (likely system placeholders). Waiting for resolution...", { id, itemId });
+                return;
+            }
+
+            try {
+                const [itemData, imagesData] = await Promise.all([
+                    getItem(itemId),
+                    getItemImages(itemId)
+                ]);
+
                 if (itemData) setItem(itemData);
                 setImages(imagesData || []);
-                setLoading(false);
-            }).catch(err => {
+            } catch (err) {
                 console.error("Failed to load photo manager:", err);
                 alert("Error loading page. Please refresh.");
+            } finally {
                 setLoading(false);
-            });
-        } else {
-            setLoading(false);
+            }
         }
-    }, [itemId]);
+        load();
+    }, [id, itemId]);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || !itemId) return;
@@ -53,11 +60,11 @@ export default function PhotoManagerPage() {
                 .from('intake-photos')
                 .upload(filePath, file);
 
-            const timeoutPromise = new Promise((_, reject) =>
+            const timeoutPromise = new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error("Upload timed out after 15s")), 15000)
             );
 
-            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+            const { error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]);
 
             if (uploadError) throw uploadError;
 
@@ -68,9 +75,10 @@ export default function PhotoManagerPage() {
             // Refresh images
             const newImages = await getItemImages(itemId);
             setImages(newImages || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Upload process failed:", err);
-            alert("Upload failed: " + err.message);
+            const message = err instanceof Error ? err.message : String(err);
+            alert("Upload failed: " + message);
         } finally {
             setUploading(false);
             e.target.value = "";

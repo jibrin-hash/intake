@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { addItem } from "@/app/actions/intake";
 import { getExistingCategories, getExistingBrands } from "@/app/actions/inventory";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { toast } from "sonner";
 
 export default function AddItemPage() {
     const { id } = useParams<{ id: string }>();
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +96,7 @@ export default function AddItemPage() {
             setModel("");
             formRef.current?.reset();
             setLoading(false);
-            router.push(`/dashboard/intake/${id}/items/${result.item.id}/photos`);
+            window.location.href = `/dashboard/intake/${id}/items/${result.item.id}/photos`;
         }
     }
 
