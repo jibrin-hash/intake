@@ -13,6 +13,8 @@ import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import { ITEM_CATEGORIES, getBrandsByCategory } from "@/lib/constants/items";
 import { toast } from "sonner";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function AddItemPage() {
     const { id } = useParams<{ id: string }>();
     const [loading, setLoading] = useState(false);
@@ -59,7 +61,10 @@ export default function AddItemPage() {
     const formRef = useRef<HTMLFormElement>(null);
 
     async function handleSubmit(formData: FormData) {
-        if (!id) return;
+        if (!id || !UUID_REGEX.test(id)) {
+            toast.error("Invalid intake ID. Please wait or refresh.");
+            return;
+        }
         setLoading(true);
         setError(null);
 

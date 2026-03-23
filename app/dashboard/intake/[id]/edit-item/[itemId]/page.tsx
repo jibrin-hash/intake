@@ -12,6 +12,8 @@ import { Tables } from "@/lib/database.types";
 import { Combobox } from "@/components/ui/combobox";
 import { ITEM_CATEGORIES, getBrandsByCategory } from "@/lib/constants/items";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function EditItemPage() {
     const { id, itemId } = useParams<{ id: string; itemId: string }>();
     const [loading, setLoading] = useState(false);
@@ -44,7 +46,10 @@ export default function EditItemPage() {
     }, [itemId]);
 
     async function handleSubmit(formData: FormData) {
-        if (!itemId || !id) return;
+        if (!itemId || !id || !UUID_REGEX.test(itemId) || !UUID_REGEX.test(id)) {
+            setError("Invalid ID format. Please refresh.");
+            return;
+        }
         setLoading(true);
         setError(null);
 

@@ -135,6 +135,10 @@ export async function addItem(intakeId: string, formData: FormData) {
     const price = parseFloat(formData.get("purchase_price") as string);
     const description = formData.get("description") as string;
 
+    if (!UUID_REGEX.test(intakeId)) {
+        return { error: `Invalid intake ID format: ${intakeId}` };
+    }
+
     if (!category || !brand || !model || !price) {
         return { error: "Missing required fields" };
     }
@@ -184,6 +188,10 @@ export async function updateItem(itemId: string, formData: FormData) {
     const condition = formData.get("condition") as string;
     const price = parseFloat(formData.get("purchase_price") as string);
     const description = formData.get("description") as string;
+
+    if (!UUID_REGEX.test(itemId)) {
+        return { error: `Invalid item ID format: ${itemId}` };
+    }
 
     if (!category || !brand || !model || !price) {
         return { error: "Missing required fields" };
