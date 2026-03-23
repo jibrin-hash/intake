@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { LeadsOnlineClient } from "@/lib/leadsonline/client";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -389,7 +389,9 @@ export async function submitToLeadsOnline(intakeId: string) {
         // For now, let's assume valid submission means we can mark it.
         // Ideally we'd parse `result.raw` to get confirmation, but for now we'll update the row.
 
-        const { error: updateError } = await supabase
+        // 5. Save ticket ID via Admin Client to bypass RLS for completed intakes
+        const adminSupabase = await createAdminClient();
+        const { error: updateError } = await adminSupabase
             .from("intakes")
             .update({ leadsonline_ticket_id: "SENT" })
             .eq("id", intakeId);
