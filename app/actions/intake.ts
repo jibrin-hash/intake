@@ -366,8 +366,15 @@ export async function submitToLeadsOnline(intakeId: string) {
     const url = process.env.LEADSONLINE_URL;
 
     if (!storeId || !username || !password || !url) {
-        console.error("LeadsOnline Config Missing");
-        return { error: "LeadsOnline configuration missing on server." };
+        console.error("[submitToLeadsOnline] Configuration missing:", {
+            LEADSONLINE_STORE_ID: !!storeId,
+            LEADSONLINE_USERNAME: !!username,
+            LEADSONLINE_PASSWORD: !!password,
+            LEADSONLINE_URL: !!url
+        });
+        return { 
+            error: "LeadsOnline configuration missing on server. Please ensure .env.local is correctly set and the server has been restarted." 
+        };
     }
 
     const client = new LeadsOnlineClient({ storeId, username, password, url });
