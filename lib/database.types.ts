@@ -264,6 +264,30 @@ export type Database = {
           }
         ]
       }
+      leadsonline_no_transaction_reports: {
+        Row: {
+          id: string
+          report_date: string
+          reported_at: string
+          status: string
+          raw_response: string | null
+        }
+        Insert: {
+          id?: string
+          report_date: string
+          reported_at?: string
+          status?: string
+          raw_response?: string | null
+        }
+        Update: {
+          id?: string
+          report_date?: string
+          reported_at?: string
+          status?: string
+          raw_response?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
